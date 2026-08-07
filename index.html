@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f5c5c">
+  <title>بازارساز هدایت تراکنش</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Tahoma, Arial, sans-serif;
+      background: #0f5c5c;
+      color: white;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+    }
+
+    .screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: white;
+      color: #172525;
+      text-align: center;
+    }
+
+    .box {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      color: #172525;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 12px 38px #00000022;
+    }
+
+    .logo {
+      font-size: 62px;
+      margin-bottom: 12px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #ccd8d8;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 6px 0;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 75px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .green {
+      background: #0f5c5c;
+      color: white;
+    }
+
+    .white {
+      background: white;
+      color: #0f5c5c;
+    }
+
+    .red {
+      background: #b33b31;
+      color: white;
+    }
+
+    .error {
+      color: #b33b31;
+      min-height: 22px;
+      font-size: 13px;
+    }
+
+    header, main {
+      padding: 18px 5%;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #ffffff55;
+    }
+
+    .space {
+      flex: 1;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .card {
+      background: white;
+      color: #172525;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .card small {
+      color: #627070;
+    }
+
+    .card b {
+      display: block;
+      margin-top: 8px;
+      font-size: 23px;
+    }
+
+    .tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .tools input, .tools select {
+      width: auto;
+      min-width: 160px;
+      margin: 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      min-width: 730px;
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      color: #172525;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: right;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e3eaea;
+    }
+
+    th {
+      background: #e8f1f0;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: #00000088;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal .box {
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 650px) {
+      .cards { grid-template-columns: 1fr 1fr; }
+      .two { grid-template-columns: 1fr; }
+      .tools input, .tools select { width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <main id="app"></main>
+
+  <script>
+    const app = document.getElementById("app");
+
+    let encryptionKey = null;
+    let customers = [];
+
+    function toBase64(buffer) {
+      return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    }
+
+    function fromBase64(text) {
+      return Uint8Array.from(atob(text), char => char.charCodeAt(0));
+    }
+
+    function randomBytes(size) {
+      return crypto.getRandomValues(new Uint8Array(size));
+    }
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("BazarsazSecureDB", 1);
+
+        request.onupgradeneeded = function () {
+          request.result.createObjectStore("secure");
+        };
+
+        request.onsuccess = function () {
+          resolve(request.result);
+        };
+
+        request.onerror = function () {
+          reject(request.error);
+        };
+      });
+    }
+
+    async function dbGet(key) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction("secure", "readonly");
+        const request = transaction.objectStore("secure").get(key);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function dbSet(key, value) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction("secure", "readwrite");
+        transaction.objectStore("secure").put(value, key);
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+    }
+
+    async function deriveKey(password, salt) {
+      const material = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+
+      return crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: salt,
+          iterations: 300000,
+          hash: "SHA-256"
+        },
+        material,
+        {
+          name: "AES-GCM",
+          length: 256
+        },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptText(text) {
+      const iv = randomBytes(12);
+
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        encryptionKey,
+        new TextEncoder().encode(text)
+      );
+
+      return {
+        iv: toBase64(iv),
+        data: toBase64(encrypted)
+      };
+    }
+
+    async function decryptText(vault) {
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv: fromBase64(vault.iv)
+        },
+        encryptionKey,
+        fromBase64(vault.data)
+      );
+
+      return new TextDecoder().decode(decrypted);
+    }
+
+    async function saveCustomers() {
+      const vault = await encryptText(JSON.stringify(customers));
+      await dbSet("customers", vault);
+    }
+
+    async function loadCustomers() {
+      const vault = await dbGet("customers");
+
+      if (!vault) {
+        customers = [];
+        return;
+      }
+
+      customers = JSON.parse(await decryptText(vault));
+    }
+
+    function splash() {
+      app.innerHTML = `
+        <section class="screen">
+          <div>
+            <div class="logo">🗺️ 💳</div>
+            <h1>بازارساز هدایت تراکنش</h1>
+            <p>سامانه امن مدیریت مشتریان</p>
+          </div>
+        </section>
+      `;
+
+      setTimeout(auth, 1000);
+    }
+
+    async function auth() {
+      const config = await dbGet("config");
+
+      if (!config) {
+        firstSetup();
+      } else {
+        loginScreen();
+      }
+    }
+
+    function firstSetup() {
+      app.innerHTML = `
+        <section class="screen">
+          <div class="box">
+            <div class="logo">🗺️ 💳</div>
+            <h2>تنظیم رمز مدیر</h2>
+            <p>رمز را فراموش نکنید؛ بازیابی اطلاعات بدون آن ممکن نیست.</p>
+
+            <input id="firstPass" type="password" placeholder="رمز مدیر">
+            <input id="repeatPass" type="password" placeholder="تکرار رمز مدیر">
+
+            <button class="green" onclick="createPassword()">
+              ثبت رمز و ورود
+            </button>
+
+            <p class="error" id="message"></p>
+          </div>
+        </section>
+      `;
+    }
+
+    async function createPassword() {
+      const password = document.getElementById("firstPass").value;
+      const repeat = document.getElementById("repeatPass").value;
+      const message = document.getElementById("message");
+
+      if (password.length < 6) {
+        message.textContent = "رمز باید حداقل ۶ کاراکتر باشد.";
+        return;
+      }
+
+      if (password !== repeat) {
+        message.textContent = "دو رمز یکسان نیستند.";
+        return;
+      }
+
+      const salt = randomBytes(16);
+      encryptionKey = await deriveKey(password, salt);
+
+      const check = await encryptText("Bazarsaz Manager OK");
+
+      await dbSet("config", {
+        salt: toBase64(salt),
+        check: check
+      });
+
+      customers = [];
+      await saveCustomers();
+      dashboard();
+    }
+
+    function loginScreen() {
+      app.innerHTML = `
+        <section class="screen">
+          <div class="box">
+            <div class="logo">🗺️ 💳</div>
+            <h2>ورود مدیر</h2>
+
+            <input id="loginPass" type="password" placeholder="رمز مدیر">
+
+            <button class="green" onclick="login()">
+              ورود
+            </button>
+
+            <p class="error" id="message"></p>
+          </div>
+        </section>
+      `;
+    }
+
+    async function login() {
+      const password = document.getElementById("loginPass").value;
+      const config = await dbGet("config");
+      const message = document.getElementById("message");
+
+      try {
+        encryptionKey = await deriveKey(
+          password,
+          fromBase64(config.salt)
+        );
+
+        const check = await decryptText(config.check);
+
+        if (check !== "Bazarsaz Manager OK") {
+          throw new Error("Wrong password");
+        }
+
+        await loadCustomers();
+        dashboard();
+      } catch (error) {
+        encryptionKey = null;
+        message.textContent = "رمز مدیر صحیح نیست.";
+      }
+    }
+
+    function dashboard() {
+      app.innerHTML = `
+        <header>
+          <span style="font-size:30px">🗺️ 💳</span>
+          <b>بازارساز هدایت تراکنش</b>
+          <span class="space"></span>
+          <button class="white" onclick="lockApp()">قفل</button>
+        </header>
+
+        <main>
+          <section class="cards">
+            <div class="card">
+              <small>کل مشتریان</small>
+              <b id="allCount">۰</b>
+            </div>
+
+            <div class="card">
+              <small>نتیجه اوکی</small>
+              <b id="okCount">۰</b>
+            </div>
+
+            <div class="card">
+              <small>کل فروش</small>
+              <b id="salesCount">۰</b>
+            </div>
+          </section>
+
+          <section class="tools">
+            <button class="white" onclick="customerForm()">
+              + ثبت مشتری
+            </button>
+
+            <input
+              id="search"
+              placeholder="جست‌وجو"
+              oninput="render()"
+            >
+
+            <select id="filter" onchange="render()">
+              <option value="">همه وضعیت‌ها</option>
+              <option>اوکی</option>
+              <option>درحال مکالمه</option>
+              <option>عدم تمایل</option>
+              <option>عدم دسترسی</option>
+              <option>خاموش</option>
+              <option>تکراری</option>
+              <option>تغییر شغل</option>
+              <option>مسدود</option>
+            </select>
+          </section>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>شرکت</th>
+                  <th>مخاطب</th>
+                  <th>تلفن</th>
+                  <th>استان / شهر</th>
+                  <th>نتیجه</th>
+                  <th>فروش</th>
+                  <th>عملیات</th>
+                </tr>
+              </thead>
+
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </main>
+      `;
+
+      render();
+    }
+
+    function render() {
+      const search = document.getElementById("search").value;
+      const filter = document.getElementById("filter").value;
+
+      const list = customers.filter(customer => {
+        const text = [
+          customer.company,
+          customer.contact,
+          customer.phone,
+          customer.province,
+          customer.city,
+          customer.result
+        ].join(" ");
+
+        return text.includes(search) &&
+          (!filter || customer.result === filter);
+      });
+
+      const totalSales = customers.reduce(
+        (sum, customer) => sum + Number(customer.sales || 0),
+        0
+      );
+
+      document.getElementById("allCount").textContent =
+        customers.length.toLocaleString("fa-IR");
+
+      document.getElementById("okCount").textContent =
+        customers.filter(item => item.result === "اوکی")
+          .length
+          .toLocaleString("fa-IR");
+
+      document.getElementById("salesCount").textContent =
+        totalSales.toLocaleString("fa-IR");
+
+      document.getElementById("rows").innerHTML = list.map(customer => `
+        <tr>
+          <td>${escapeHtml(customer.company)}</td>
+          <td>${escapeHtml(customer.contact)}</td>
+          <td>${escapeHtml(customer.phone)}</td>
+          <td>
+            ${escapeHtml(customer.province)}
+            /
+            ${escapeHtml(customer.city)}
+          </td>
+          <td>${escapeHtml(customer.result)}</td>
+          <td>
+            ${Number(customer.sales || 0).toLocaleString("fa-IR")}
+          </td>
+          <td>
+            <button
+              class="red"
+              onclick="removeCustomer('${customer.id}')"
+            >
+              حذف
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function customerForm() {
+      document.body.insertAdjacentHTML("beforeend", `
+        <div class="modal">
+          <div class="box">
+            <h2>ثبت مشتری جدید</h2>
+
+            <div class="two">
+              <input id="company" placeholder="نام شرکت">
+              <input id="contact" placeholder="نام مخاطب">
+              <input id="phone" placeholder="شماره تماس">
+              <input id="province" placeholder="استان">
+              <input id="city" placeholder="شهر">
+
+              <select id="result">
+                <option>اوکی</option>
+                <option>درحال مکالمه</option>
+                <option>عدم تمایل</option>
+                <option>عدم دسترسی</option>
+                <option>خاموش</option>
+                <option>تکراری</option>
+                <option>تغییر شغل</option>
+                <option>مسدود</option>
+              </select>
+
+              <input
+                id="sales"
+                type="number"
+                placeholder="مقدار فروش"
+              >
+            </div>
+
+            <textarea id="notes" placeholder="یادداشت"></textarea>
+
+            <p>
+              <button class="green" onclick="saveCustomer()">
+                ذخیره
+              </button>
+
+              <button onclick="closeModal()">انصراف</button>
+            </p>
+          </div>
+        </div>
+      `);
+    }
+
+    async function saveCustomer() {
+      customers.unshift({
+        id: Date.now().toString(),
+        company: document.getElementById("company").value,
+        contact: document.getElementById("contact").value,
+        phone: document.getElementById("phone").value,
+        province: document.getElementById("province").value,
+        city: document.getElementById("city").value,
+        result: document.getElementById("result").value,
+        sales: document.getElementById("sales").value,
+        notes: document.getElementById("notes").value
+      });
+
+      await saveCustomers();
+      closeModal();
+      dashboard();
+    }
+
+    async function removeCustomer(id) {
+      if (!confirm("این مشتری حذف شود؟")) return;
+
+      customers = customers.filter(customer => customer.id !== id);
+      await saveCustomers();
+      render();
+    }
+
+    function closeModal() {
+      document.querySelector(".modal").remove();
+    }
+
+    function lockApp() {
+      encryptionKey = null;
+      customers = [];
+      loginScreen();
+    }
+
+    splash();
+  </script>
+</body>
+</html>
