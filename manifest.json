@@ -1,0 +1,10 @@
+{
+  "name": "بازارساز هدایت تراکنش",
+  "short_name": "بازارساز",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f5c5c",
+  "lang": "fa",
+  "dir": "rtl"
+}
