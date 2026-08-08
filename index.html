@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071b35">
+<title>بازارساز | مدیریت هوشمند پرداخت و فروش</title>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<style>
+:root{
+  --navy:#061a34;
+  --navy2:#0b2b52;
+  --blue:#1769aa;
+  --gold:#e6b64d;
+  --green:#0f8b65;
+  --red:#c13c38;
+  --ice:#eaf5ff;
+  --muted:#b8cce0;
+}
+
+*{box-sizing:border-box;font-family:Tahoma,Arial,sans-serif}
+
+body{
+  margin:0;
+  min-height:100vh;
+  color:#fff;
+  background:
+    radial-gradient(circle at top right,#155b99 0,transparent 30%),
+    radial-gradient(circle at bottom left,#083d71 0,transparent 25%),
+    var(--navy);
+}
+
+button,input,select,textarea{font-family:inherit}
+
+button{
+  border:0;
+  border-radius:10px;
+  padding:11px 15px;
+  cursor:pointer;
+  font-weight:bold;
+  transition:.2s;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.07);
+}
+
+input,select,textarea{
+  width:100%;
+  padding:12px;
+  border:1px solid #b9c9da;
+  border-radius:10px;
+  margin:6px 0;
+  font-size:14px;
+}
+
+textarea{
+  min-height:85px;
+  resize:vertical;
+}
+
+.login-screen{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  align-items:stretch;
+}
+
+.payment-hero{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-height:100vh;
+  padding:70px;
+  background:
+    linear-gradient(145deg,rgba(4,19,39,.88),rgba(12,61,104,.83)),
+    radial-gradient(circle at 20% 20%,rgba(230,182,77,.25),transparent 30%);
+}
+
+.payment-hero:after{
+  content:"";
+  position:absolute;
+  width:500px;
+  height:500px;
+  left:-180px;
+  bottom:-220px;
+  border:1px solid rgba(230,182,77,.25);
+  border-radius:50%;
+  box-shadow:
+    0 0 0 45px rgba(230,182,77,.04),
+    0 0 0 90px rgba(230,182,77,.03);
+}
+
+.brand{
+  position:relative;
+  z-index:2;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-bottom:36px;
+  font-weight:bold;
+  font-size:20px;
+}
+
+.brand-icon{
+  width:46px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  color:#062040;
+  background:linear-gradient(135deg,#f4d47a,#c98e21);
+  border-radius:14px;
+  font-size:23px;
+}
+
+.payment-hero h1{
+  position:relative;
+  z-index:2;
+  max-width:600px;
+  margin:0;
+  font-size:42px;
+  line-height:1.5;
+}
+
+.payment-hero p{
+  position:relative;
+  z-index:2;
+  max-width:560px;
+  margin:18px 0;
+  color:#d4e4f3;
+  font-size:16px;
+  line-height:2;
+}
+
+.payment-card{
+  position:relative;
+  z-index:2;
+  width:min(100%,410px);
+  height:245px;
+  margin-top:25px;
+  padding:25px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:24px;
+  background:
+    linear-gradient(145deg,rgba(38,113,176,.96),rgba(6,29,62,.96));
+  box-shadow:0 26px 60px rgba(0,0,0,.35);
+}
+
+.payment-card:before{
+  content:"";
+  position:absolute;
+  width:230px;
+  height:230px;
+  left:-70px;
+  top:-105px;
+  border:1px solid rgba(230,182,77,.35);
+  border-radius:50%;
+}
+
+.payment-card small{
+  position:relative;
+  color:#bed7ed;
+}
+
+.card-chip{
+  position:relative;
+  width:52px;
+  height:38px;
+  margin-top:25px;
+  border-radius:8px;
+  background:linear-gradient(135deg,#f6dd90,#b77b12);
+}
+
+.card-number{
+  position:relative;
+  margin-top:20px;
+  letter-spacing:3px;
+  direction:ltr;
+  font-size:18px;
+}
+
+.card-footer{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  margin-top:20px;
+  color:#e0edf8;
+  font-size:12px;
+}
+
+.login-area{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:28px;
+  background:#f6f9fc;
+}
+
+.login-box{
+  width:100%;
+  max-width:420px;
+  padding:34px;
+  color:#172535;
+  background:#fff;
+  border:1px solid #e3ebf4;
+  border-radius:24px;
+  box-shadow:0 20px 55px rgba(10,42,75,.14);
+}
+
+.login-box h2{
+  margin:0 0 8px;
+  color:#0b2b52;
+  font-size:24px;
+}
+
+.login-box p{
+  margin:0 0 22px;
+  color:#687b90;
+  line-height:1.8;
+  font-size:13px;
+}
+
+.login-box label{
+  display:block;
+  margin-top:12px;
+  color:#304a66;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.login-box input{
+  border-color:#d4e0eb;
+  background:#f9fbfd;
+}
+
+.login-box input:focus{
+  outline:2px solid #b6d6f0;
+  border-color:#1769aa;
+}
+
+.green{color:#fff;background:var(--green)}
+.red{color:#fff;background:var(--red)}
+.white{color:#0b2b52;background:#edf6ff}
+.gray{color:#173253;background:#e7eff7}
+
+.login-button{
+  width:100%;
+  margin-top:14px;
+  padding:13px;
+  background:linear-gradient(135deg,#1769aa,#0f8b65);
+  color:#fff;
+}
+
+.error{
+  min-height:22px;
+  margin-top:12px;
+  color:#c13c38;
+  text-align:center;
+  font-size:13px;
+}
+
+header,main{
+  padding:18px max(18px,calc((100vw - 1280px)/2));
+}
+
+header{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  background:rgba(4,20,38,.88);
+  border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+.header-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.header-brand span{
+  display:grid;
+  width:34px;
+  height:34px;
+  place-items:center;
+  color:#062040;
+  background:var(--gold);
+  border-radius:10px;
+}
+
+.space{flex:1}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin:6px 0 20px;
+}
+
+.card{
+  position:relative;
+  overflow:hidden;
+  padding:19px;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:17px;
+  background:linear-gradient(145deg,#164778,#0c2d54);
+}
+
+.card:after{
+  content:"";
+  position:absolute;
+  width:90px;
+  height:90px;
+  left:-25px;
+  bottom:-35px;
+  border-radius:50%;
+  background:rgba(230,182,77,.09);
+}
+
+.card small{color:#c5d3e2}
+.card b{display:block;margin-top:13px;font-size:29px}
+
+.tools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-bottom:12px;
+}
+
+.tools input,.tools select{
+  width:auto;
+  min-width:175px;
+  margin:0;
+  color:#fff;
+  background:var(--navy2);
+  border:1px solid rgba(255,255,255,.18);
+}
+
+.tools input{min-width:250px}
+.file{display:none}
+
+.wrap{
+  overflow:auto;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 15px 35px rgba(0,0,0,.15);
+}
+
+table{
+  width:100%;
+  min-width:850px;
+  border-collapse:collapse;
+  color:#172535;
+}
+
+th,td{
+  padding:12px;
+  text-align:right;
+  border-bottom:1px solid #dfe8f0;
+}
+
+th{
+  color:#0b2b52;
+  background:#e9f3fc;
+  font-size:13px;
+}
+
+tbody tr:hover td{background:#f5faff}
+
+.badge{
+  padding:5px 9px;
+  border-radius:99px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.ok{color:#166534;background:#dcfce7}
+.talk{color:#075985;background:#e0f2fe}
+.follow{color:#92400e;background:#fef3c7}
+.no{color:#5b21b6;background:#ede9fe}
+.reject{color:#991b1b;background:#fee2e2}
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  background:rgba(0,0,0,.7);
+}
+
+.modal .login-box{
+  max-height:92vh;
+  overflow:auto;
+}
+
+.two{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+
+.actions button{flex:1}
+
+@media(max-width:900px){
+  .login-screen{grid-template-columns:1fr}
+  .payment-hero{display:none}
+}
+
+@media(max-width:700px){
+  .cards,.two{grid-template-columns:1fr}
+  .tools input,.tools select,.tools button{width:100%}
+}
+</style>
+</head>
+
+<body>
+<main id="app"></main>
+
+<script>
+const $=id=>document.getElementById(id);
+
+const PASSWORD_HASH="18b6d0d68af7fa074ec1a5e14fab63579a2ce4e230e0ac607214227d3f201bd6";
+const DATA_KEY="bazarsaz_customers_final";
+const LOGIN_KEY="bazarsaz_login_final";
+
+const statuses=[
+  "اوکی",
+  "در حال مکالمه",
+  "رد شده",
+  "پیگیری",
+  "پاسخ نداد"
+];
+
+let customers=[];
+
+const esc=v=>String(v??"")
+  .replaceAll("&","&amp;")
+  .replaceAll("<","&lt;")
+  .replaceAll(">","&gt;")
+  .replaceAll('"',"&quot;")
+  .replaceAll("'","&#039;");
+
+const norm=v=>String(v??"")
+  .normalize("NFKC")
+  .trim()
+  .toLowerCase()
+  .replace(/[يى]/g,"ی")
+  .replace(/ك/g,"ک")
+  .replace(/\s+/g," ");
+
+const createId=()=>crypto.randomUUID
+  ?crypto.randomUUID()
+  :Date.now()+Math.random().toString(16).slice(2);
+
+function toEnglishDigits(v){
+  return String(v??"")
+    .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
+}
+
+function toNumber(v){
+  const text=toEnglishDigits(v)
+    .replace(/[,\s٬]/g,"")
+    .replace(/٫/g,".")
+    .replace(/[^0-9.-]/g,"");
+
+  const number=Number(text);
+  return Number.isFinite(number)?number:0;
+}
+
+function canonicalStatus(v){
+  const text=norm(v);
+
+  if(["اوکی","ok","موفق","موفق شد","انجام شد"].includes(text)){
+    return "اوکی";
+  }
+
+  if(text.includes("مکالمه")||text.includes("talk")){
+    return "در حال مکالمه";
+  }
+
+  if(
+    text.includes("رد")||
+    text.includes("نمیخواد")||
+    text.includes("نمی خواهد")||
+    text.includes("rejected")
+  ){
+    return "رد شده";
+  }
+
+  if(text.includes("پیگیری")||text.includes("follow")){
+    return "پیگیری";
+  }
+
+  if(
+    text.includes("پاسخ نداد")||
+    text.includes("پاسخ نمیده")||
+    text.includes("پاسخ نمی دهد")||
+    text.includes("جواب نداد")||
+    text.includes("عدم پاسخ")||
+    text.includes("no answer")
+  ){
+    return "پاسخ نداد";
+  }
+
+  return String(v??"").trim();
+}
+
+async function hashText(v){
+  const buffer=await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(v)
+  );
+
+  return [...new Uint8Array(buffer)]
+    .map(x=>x.toString(16).padStart(2,"0"))
+    .join("");
+}
+
+function saveCustomers(){
+  localStorage.setItem(DATA_KEY,JSON.stringify(customers));
+}
+
+function loadCustomers(){
+  try{
+    customers=JSON.parse(localStorage.getItem(DATA_KEY))||[];
+  }catch{
+    customers=[];
+  }
+}
+
+function loginPage(){
+  $("app").innerHTML=`
+    <section class="login-screen">
+      <div class="payment-hero">
+        <div class="brand">
+          <div class="brand-icon">▣</div>
+          بازارساز پرداخت
+        </div>
+
+        <h1>کنترل هوشمند فروش، مشتری و تراکنش‌های کسب‌وکار</h1>
+
+        <p>
+          داشبورد حرفه‌ای مدیریت مشتریان، پیگیری تماس‌ها،
+          فروش و عملکرد تیم شما در یک محیط امن و یکپارچه.
+        </p>
+
+        <div class="payment-card">
+          <small>BAZARSAZ PAYMENT</small>
+          <div class="card-chip"></div>
+          <div class="card-number">•••• &nbsp; •••• &nbsp; •••• &nbsp; 2026</div>
+          <div class="card-footer">
+            <span>SMART SALES</span>
+            <strong>پرداخت امن</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="login-area">
+        <div class="login-box">
+          <div style="font-size:38px">🔐</div>
+          <h2>ورود به پنل فروش</h2>
+          <p>
+            برای دسترسی به اطلاعات مشتریان و گزارش فروش،
+            رمز عبور خود را وارد کنید.
+          </p>
+
+          <label for="password">رمز عبور</label>
+
+          <input
+            id="password"
+            type="password"
+            placeholder="رمز عبور"
+            autofocus
+            onkeydown="if(event.key==='Enter')login()"
+          >
+
+          <button class="login-button" onclick="login()">
+            ورود امن به داشبورد
+          </button>
+
+          <p class="error" id="message"></p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+async function login(){
+  const entered=await hashText($("password").value);
+
+  if(entered!==PASSWORD_HASH){
+    $("message").textContent="رمز عبور صحیح نیست.";
+    return;
+  }
+
+  sessionStorage.setItem(LOGIN_KEY,"1");
+  loadCustomers();
+  dashboard();
+}
+
+function lockApp(){
+  sessionStorage.removeItem(LOGIN_KEY);
+  customers=[];
+  loginPage();
+}
+
+function statusOptions(selected=""){
+  return statuses.map(status=>`
+    <option value="${status}"
+      ${canonicalStatus(selected)===status?"selected":""}>
+      ${status}
+    </option>
+  `).join("");
+}
+
+function statusBadge(value){
+  const status=canonicalStatus(value);
+
+  const color=
+    status==="اوکی"?"ok":
+    status==="در حال مکالمه"?"talk":
+    status==="رد شده"?"reject":
+    status==="پیگیری"?"follow":
+    "no";
+
+  return `<span class="badge ${color}">${esc(status||"نامشخص")}</span>`;
+}
+
+function dashboard(){
+  $("app").innerHTML=`
+    <header>
+      <div class="header-brand">
+        <span>▣</span>
+        <b>بازارساز | مدیریت فروش و پرداخت</b>
+      </div>
+
+      <span class="space"></span>
+
+      <button class="white" onclick="lockApp()">
+        قفل کردن
+      </button>
+    </header>
+
+    <main>
+      <section class="cards">
+        <div class="card">
+          <small>کل مشتریان</small>
+          <b id="totalCustomers">۰</b>
+        </div>
+
+        <div class="card">
+          <small>فروش‌های موفق</small>
+          <b id="successfulCustomers">۰</b>
+        </div>
+
+        <div class="card">
+          <small>کل تعداد فروش</small>
+          <b id="totalSales">۰</b>
+        </div>
+      </section>
+
+      <section class="tools">
+        <button class="white" onclick="openCustomerForm()">
+          + ثبت مشتری جدید
+        </button>
+
+        <button class="white" onclick="$('excelFile').click()">
+          ایمپورت Excel
+        </button>
+
+        <input
+          id="excelFile"
+          class="file"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onchange="importExcel(event)"
+        >
+
+        <input
+          id="search"
+          placeholder="جستجوی نام، مدیرعامل، شماره، شهر یا وضعیت..."
+          oninput="render()"
+        >
+
+        <select id="filter" onchange="render()">
+          <option value="">همه وضعیت‌ها</option>
+          ${statusOptions()}
+        </select>
+
+        <select id="sort" onchange="render()">
+          <option value="desc">فروش: بیشترین به کمترین</option>
+          <option value="asc">فروش: کمترین به بیشترین</option>
+        </select>
+      </section>
+
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>نام مجموعه</th>
+              <th>نام مخاطب / مدیرعامل</th>
+              <th>شماره تماس</th>
+              <th>استان / شهر</th>
+              <th>وضعیت</th>
+              <th>تعداد فروش</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+  `;
+
+  render();
+}
+
+function render(){
+  const search=norm($("search").value);
+  const filter=$("filter").value;
+  const sort=$("sort").value;
+
+  $("totalCustomers").textContent=
+    customers.length.toLocaleString("fa-IR");
+
+  $("successfulCustomers").textContent=
+    customers
+      .filter(x=>canonicalStatus(x.result)==="اوکی")
+      .length
+      .toLocaleString("fa-IR");
+
+  $("totalSales").textContent=
+    customers
+      .reduce((sum,x)=>sum+toNumber(x.sales),0)
+      .toLocaleString("fa-IR");
+
+  let list=customers.filter(customer=>{
+    const text=norm([
+      customer.company,
+      customer.contact,
+      customer.phone,
+      customer.province,
+      customer.city,
+      customer.result,
+      customer.notes
+    ].join(" "));
+
+    return text.includes(search)&&
+      (!filter||canonicalStatus(customer.result)===filter);
+  });
+
+  list.sort((a,b)=>
+    sort==="asc"
+      ?toNumber(a.sales)-toNumber(b.sales)
+      :toNumber(b.sales)-toNumber(a.sales)
+  );
+
+  $("rows").innerHTML=list.length
+    ?list.map(customer=>`
+      <tr>
+        <td>${esc(customer.company)}</td>
+        <td>${esc(customer.contact)}</td>
+        <td dir="ltr">${esc(customer.phone)}</td>
+        <td>${esc(customer.province)} / ${esc(customer.city)}</td>
+        <td>${statusBadge(customer.result)}</td>
+        <td>${toNumber(customer.sales).toLocaleString("fa-IR")}</td>
+        <td>
+          <button class="gray" onclick="openCustomerForm('${customer.id}')">
+            ویرایش
+          </button>
+
+          <button class="red" onclick="deleteCustomer('${customer.id}')">
+            حذف
+          </button>
+        </td>
+      </tr>
+    `).join("")
+    :`
+      <tr>
+        <td colspan="7" style="text-align:center;padding:30px">
+          اطلاعاتی پیدا نشد.
+        </td>
+      </tr>
+    `;
+}
+
+function openCustomerForm(customerId=null){
+  const customer=customers.find(x=>x.id===customerId)||{
+    company:"",
+    contact:"",
+    phone:"",
+    province:"",
+    city:"",
+    result:"",
+    sales:"",
+    notes:""
+  };
+
+  document.body.insertAdjacentHTML("beforeend",`
+    <div class="modal">
+      <div class="login-box">
+        <h2>${customerId?"ویرایش مشتری":"ثبت مشتری جدید"}</h2>
+
+        <div class="two">
+          <input id="company" placeholder="نام مجموعه / شرکت"
+            value="${esc(customer.company)}">
+
+          <input id="contact" placeholder="نام مخاطب یا مدیرعامل"
+            value="${esc(customer.contact)}">
+
+          <input id="phone" placeholder="شماره تماس"
+            value="${esc(customer.phone)}">
+
+          <input id="province" placeholder="استان"
+            value="${esc(customer.province)}">
+
+          <input id="city" placeholder="شهر"
+            value="${esc(customer.city)}">
+
+          <select id="result">
+            <option value="">وضعیت تماس</option>
+            ${statusOptions(customer.result)}
+          </select>
+
+          <input id="sales"
+            type="text"
+            inputmode="numeric"
+            placeholder="تعداد فروش"
+            value="${esc(customer.sales)}">
+        </div>
+
+        <textarea id="notes" placeholder="یادداشت">${esc(customer.notes)}</textarea>
+
+        <div class="actions">
+          <button class="green" onclick="saveCustomer('${customerId||""}')">
+            ذخیره اطلاعات
+          </button>
+
+          <button class="gray" onclick="closeModal()">
+            انصراف
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function closeModal(){
+  document.querySelector(".modal")?.remove();
+}
+
+function saveCustomer(customerId){
+  const company=$("company").value.trim();
+  const phone=$("phone").value.trim();
+
+  if(!company||!phone){
+    alert("نام مجموعه و شماره تماس را وارد کنید.");
+    return;
+  }
+
+  const customer={
+    id:customerId||createId(),
+    company,
+    contact:$("contact").value.trim(),
+    phone,
+    province:$("province").value.trim(),
+    city:$("city").value.trim(),
+    result:canonicalStatus($("result").value),
+    sales:toNumber($("sales").value),
+    notes:$("notes").value.trim()
+  };
+
+  const index=customers.findIndex(x=>x.id===customer.id);
+
+  if(index>=0){
+    customers[index]=customer;
+  }else{
+    customers.unshift(customer);
+  }
+
+  saveCustomers();
+  closeModal();
+  render();
+}
+
+function deleteCustomer(customerId){
+  if(!confirm("آیا از حذف این مشتری مطمئن هستید؟")){
+    return;
+  }
+
+  customers=customers.filter(x=>x.id!==customerId);
+  saveCustomers();
+  render();
+}
+
+function getExcelValue(row,names){
+  const keys=Object.keys(row);
+
+  for(const name of names){
+    const key=keys.find(item=>norm(item)===norm(name));
+
+    if(key!==undefined){
+      return String(row[key]??"").trim();
+    }
+  }
+
+  return "";
+}
+
+async function importExcel(event){
+  const file=event.target.files[0];
+
+  if(!file){
+    return;
+  }
+
+  try{
+    const workbook=XLSX.read(await file.arrayBuffer(),{
+      type:"array"
+    });
+
+    let added=0;
+    let updated=0;
+
+    workbook.SheetNames.forEach(sheetName=>{
+      const rows=XLSX.utils.sheet_to_json(
+        workbook.Sheets[sheetName],
+        {defval:"",raw:false}
+      );
+
+      rows.forEach(row=>{
+        const customer={
+          company:getExcelValue(row,[
+            "نام مجموعه","نام شرکت","شرکت","مجموعه","company"
+          ]),
+
+          contact:getExcelValue(row,[
+            "نام مخاطب",
+            "نام مشتری",
+            "مخاطب",
+            "نام مدیرعامل",
+            "مدیرعامل",
+            "نام و نام خانوادگی",
+            "نام کامل",
+            "مسئول خرید",
+            "صاحب مجموعه",
+            "نام مدیر",
+            "مدیر",
+            "contact",
+            "customer name",
+            "full name",
+            "ceo"
+          ]),
+
+          phone:getExcelValue(row,[
+            "شماره تماس","تلفن","موبایل","phone","mobile"
+          ]),
+
+          province:getExcelValue(row,[
+            "استان","province"
+          ]),
+
+          city:getExcelValue(row,[
+            "شهر","city"
+          ]),
+
+          result:canonicalStatus(getExcelValue(row,[
+            "وضعیت تماس","وضعیت","نتیجه تماس","status","result"
+          ])),
+
+          sales:toNumber(getExcelValue(row,[
+            "تعداد فروش",
+            "فروش",
+            "کل فروش",
+            "مقدار فروش",
+            "فروش کل",
+            "تعداد",
+            "sales",
+            "amount",
+            "quantity"
+          ])),
+
+          notes:getExcelValue(row,[
+            "یادداشت","توضیحات","notes"
+          ])
+        };
+
+        if(!customer.company&&!customer.phone){
+          return;
+        }
+
+        const oldCustomer=customers.find(item=>
+          (customer.phone&&norm(item.phone)===norm(customer.phone))||
+          (customer.company&&norm(item.company)===norm(customer.company))
+        );
+
+        if(oldCustomer){
+          Object.assign(oldCustomer,customer);
+          updated++;
+        }else{
+          customers.unshift({
+            id:createId(),
+            ...customer
+          });
+
+          added++;
+        }
+      });
+    });
+
+    saveCustomers();
+    render();
+
+    alert(
+      "ایمپورت انجام شد.\n" +
+      "افزوده‌شده: "+added.toLocaleString("fa-IR")+"\n" +
+      "به‌روزرسانی‌شده: "+updated.toLocaleString("fa-IR")
+    );
+  }catch(error){
+    console.error(error);
+    alert("فایل خوانده نشد. لطفاً Excel یا CSV معتبر وارد کنید.");
+  }
+
+  event.target.value="";
+}
+
+if(sessionStorage.getItem(LOGIN_KEY)==="1"){
+  loadCustomers();
+  dashboard();
+}else{
+  loginPage();
+}
+</script>
+</body>
+</html>
