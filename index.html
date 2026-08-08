@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مدیریت فروش بازارساز</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{--n:#071b35;--n2:#0b2b52;--g:#15803d;--r:#b42318}*{box-sizing:border-box;font-family:Tahoma,Arial,sans-serif}body{margin:0;min-height:100vh;color:#fff;background:radial-gradient(circle at top right,#1b528f,transparent 32%),var(--n)}button,input,select,textarea{font-family:inherit}button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:bold}input,select,textarea{width:100%;padding:11px;border:1px solid #b9c9da;border-radius:9px;margin:6px 0;font-size:14px}textarea{min-height:80px}.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.box{width:100%;max-width:460px;padding:28px;color:#172535;background:#fff;border-radius:18px;box-shadow:0 18px 55px #0007}.logo{text-align:center;font-size:52px}.box h2{text-align:center}.green{color:#fff;background:var(--g)}.red{color:#fff;background:var(--r)}.white{color:#0b2b52;background:#edf6ff}.gray{color:#173253;background:#e7eff7}.error{min-height:22px;color:#b42318;text-align:center}header,main{padding:18px max(18px,calc((100vw - 1250px)/2))}header{display:flex;gap:10px;align-items:center;background:#041426cc}.space{flex:1}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}.card{padding:17px;border-radius:14px;background:linear-gradient(145deg,#164778,#0c2d54)}.card small{color:#c5d3e2}.card b{display:block;margin-top:10px;font-size:27px}.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.tools input,.tools select{width:auto;min-width:170px;margin:0;color:#fff;background:var(--n2);border:1px solid #ffffff33}.tools input{min-width:230px}.file{display:none}.wrap{overflow:auto;background:#fff;border-radius:14px}table{width:100%;min-width:850px;border-collapse:collapse;color:#172535}th,td{padding:11px;text-align:right;border-bottom:1px solid #dfe8f0}th{background:#dcecfb}.badge{padding:5px 9px;border-radius:99px;font-size:12px;font-weight:bold}.ok{color:#166534;background:#dcfce7}.talk{color:#075985;background:#e0f2fe}.follow{color:#92400e;background:#fef3c7}.no{color:#5b21b6;background:#ede9fe}.reject{color:#991b1b;background:#fee2e2}.modal{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:14px;background:#000b}.modal .box{max-height:92vh;overflow:auto}.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}@media(max-width:700px){.cards,.two{grid-template-columns:1fr}.tools input,.tools select,.tools button{width:100%}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const app=document.getElementById("app");
+const HASH="18b6d0d68af7fa074ec1a5e14fab63579a2ce4e230e0ac607214227d3f201bd6";
+const DATA="bazarsaz_customers_final",LOGIN="bazarsaz_login_final";
+const statuses=["اوکی","در حال مکالمه","رد شده","پیگیری","پاسخ نداد"];
+let customers=[];
+
+const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+const norm=v=>String(v??"").normalize("NFKC").trim().toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/\s+/g," ");
+const id=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(16).slice(2);
+
+function en(v){return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))}
+function num(v){let x=en(v).replace(/[,\s٬]/g,"").replace(/٫/g,".").replace(/[^0-9.-]/g,"");let n=Number(x);return Number.isFinite(n)?n:0}
+
+function stat(v){
+  let x=norm(v);
+  if(["اوکی","ok","موفق","موفق شد","انجام شد"].includes(x))return"اوکی";
+  if(x.includes("مکالمه")||x.includes("talk"))return"در حال مکالمه";
+  if(x.includes("رد")||x.includes("نمیخواد")||x.includes("نمی خواهد")||x.includes("rejected"))return"رد شده";
+  if(x.includes("پیگیری")||x.includes("follow"))return"پیگیری";
+  if(x.includes("پاسخ نداد")||x.includes("پاسخ نمیده")||x.includes("پاسخ نمی دهد")||x.includes("جواب نداد")||x.includes("عدم پاسخ")||x.includes("no answer"))return"پاسخ نداد";
+  return String(v??"").trim();
+}
+
+async function sha(v){let b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function save(){localStorage.setItem(DATA,JSON.stringify(customers))}
+function load(){try{customers=JSON.parse(localStorage.getItem(DATA))||[]}catch{customers=[]}}
+
+function loginPage(){
+ app.innerHTML=`<section class="screen"><div class="box"><div class="logo">🔒</div><h2>ورود به داشبورد</h2><input id="pass" type="password" placeholder="رمز عبور" autofocus onkeydown="if(event.key==='Enter')login()"><button class="green" style="width:100%" onclick="login()">ورود</button><p class="error" id="msg"></p></div></section>`;
+}
+async function login(){if(await sha(pass.value)!==HASH){msg.textContent="رمز عبور صحیح نیست.";return}sessionStorage.setItem(LOGIN,"1");load();dashboard()}
+function lock(){sessionStorage.removeItem(LOGIN);customers=[];loginPage()}
+function opts(s=""){return statuses.map(x=>`<option value="${x}" ${stat(s)===x?"selected":""}>${x}</option>`).join("")}
+function badge(s){let x=stat(s),c=x==="اوکی"?"ok":x==="در حال مکالمه"?"talk":x==="رد شده"?"reject":x==="پیگیری"?"follow":"no";return`<span class="badge ${c}">${esc(x||"نامشخص")}</span>`}
+
+function dashboard(){
+ app.innerHTML=`<header><span style="font-size:28px">📊</span><b>مدیریت فروش بازارساز</b><span class="space"></span><button class="white" onclick="lock()">قفل کردن</button></header><main><section class="cards"><div class="card"><small>کل مشتریان</small><b id="total">۰</b></div><div class="card"><small>فروش‌های موفق</small><b id="oks">۰</b></div><div class="card"><small>کل تعداد فروش</small><b id="salesTotal">۰</b></div></section><section class="tools"><button class="white" onclick="form()">+ ثبت مشتری</button><button class="white" onclick="file.click()">ایمپورت Excel</button><input class="file" id="file" type="file" accept=".xlsx,.xls,.csv" onchange="importFile(event)"><input id="search" placeholder="جستجوی نام، شماره، شهر یا وضعیت..." oninput="render()"><select id="filter" onchange="render()"><option value="">همه وضعیت‌ها</option>${opts()}</select><select id="sort" onchange="render()"><option value="desc">فروش: بیشترین به کمترین</option><option value="asc">فروش: کمترین به بیشترین</option></select></section><div class="wrap"><table><thead><tr><th>نام مجموعه</th><th>مخاطب</th><th>شماره</th><th>استان / شهر</th><th>وضعیت</th><th>تعداد فروش</th><th>عملیات</th></tr></thead><tbody id="rows"></tbody></table></div></main>`;
+ render();
+}
+
+function render(){
+ let q=norm(search.value),f=filter.value,s=sort.value;
+ total.textContent=customers.length.toLocaleString("fa-IR");
+ oks.textContent=customers.filter(x=>stat(x.result)==="اوکی").length.toLocaleString("fa-IR");
+ salesTotal.textContent=customers.reduce((a,x)=>a+num(x.sales),0).toLocaleString("fa-IR");
+ let list=customers.filter(x=>norm([x.company,x.contact,x.phone,x.province,x.city,x.result,x.notes].join(" ")).includes(q)&&(!f||stat(x.result)===f));
+ list.sort((a,b)=>s==="asc"?num(a.sales)-num(b.sales):num(b.sales)-num(a.sales));
+ rows.innerHTML=list.length?list.map(x=>`<tr><td>${esc(x.company)}</td><td>${esc(x.contact)}</td><td dir="ltr">${esc(x.phone)}</td><td>${esc(x.province)} / ${esc(x.city)}</td><td>${badge(x.result)}</td><td>${num(x.sales).toLocaleString("fa-IR")}</td><td><button class="gray" onclick="form('${x.id}')">ویرایش</button> <button class="red" onclick="del('${x.id}')">حذف</button></td></tr>`).join(""):`<tr><td colspan="7" style="text-align:center;padding:30px">اطلاعاتی پیدا نشد.</td></tr>`;
+}
+
+function form(i=null){
+ let x=customers.find(a=>a.id===i)||{company:"",contact:"",phone:"",province:"",city:"",result:"",sales:"",notes:""};
+ document.body.insertAdjacentHTML("beforeend",`<div class="modal"><div class="box"><h2>${i?"ویرایش مشتری":"ثبت مشتری جدید"}</h2><div class="two"><input id="company" placeholder="نام مجموعه / شرکت" value="${esc(x.company)}"><input id="contact" placeholder="نام مخاطب" value="${esc(x.contact)}"><input id="phone" placeholder="شماره تماس" value="${esc(x.phone)}"><input id="province" placeholder="استان" value="${esc(x.province)}"><input id="city" placeholder="شهر" value="${esc(x.city)}"><select id="result"><option value="">وضعیت تماس</option>${opts(x.result)}</select><input id="sales" type="text" inputmode="numeric" placeholder="تعداد فروش" value="${esc(x.sales)}"></div><textarea id="notes" placeholder="یادداشت">${esc(x.notes)}</textarea><div class="actions"><button class="green" onclick="saveCustomer('${i||""}')">ذخیره</button><button class="gray" onclick="closeModal()">انصراف</button></div></div></div>`);
+}
+
+function closeModal(){document.querySelector(".modal")?.remove()}
+function saveCustomer(i){
+ let company=document.getElementById("company").value.trim(),phone=document.getElementById("phone").value.trim();
+ if(!company||!phone)return alert("نام مجموعه و شماره تماس را وارد کنید.");
+ let x={id:i||id(),company,phone,contact:document.getElementById("contact").value.trim(),province:document.getElementById("province").value.trim(),city:document.getElementById("city").value.trim(),result:stat(document.getElementById("result").value),sales:num(document.getElementById("sales").value),notes:document.getElementById("notes").value.trim()};
+ let n=customers.findIndex(a=>a.id===x.id);n>=0?customers[n]=x:customers.unshift(x);save();closeModal();render();
+}
+function del(i){if(confirm("آیا از حذف این مشتری مطمئن هستید؟")){customers=customers.filter(x=>x.id!==i);save();render()}}
+
+function value(row,names){
+ let keys=Object.keys(row);
+ for(let n of names){let k=keys.find(x=>norm(x)===norm(n));if(k!==undefined)return String(row[k]??"").trim()}
+ return"";
+}
+
+async function importFile(e){
+ let f=e.target.files[0];if(!f)return;
+ try{
+  let wb=XLSX.read(await f.arrayBuffer(),{type:"array"}),added=0,updated=0;
+  wb.SheetNames.forEach(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:"",raw:false}).forEach(r=>{
+   let x={company:value(r,["نام مجموعه","نام شرکت","شرکت","مجموعه","company"]),contact:value(r,["نام مخاطب","نام مشتری","مخاطب","contact"]),phone:value(r,["شماره تماس","تلفن","موبایل","phone","mobile"]),province:value(r,["استان","province"]),city:value(r,["شهر","city"]),result:stat(value(r,["وضعیت تماس","وضعیت","نتیجه تماس","status","result"])),sales:num(value(r,["تعداد فروش","فروش","کل فروش","مقدار فروش","فروش کل","تعداد","sales","amount","quantity"])),notes:value(r,["یادداشت","توضیحات","notes"])};
+   if(!x.company&&!x.phone)return;
+   let old=customers.find(a=>(x.phone&&norm(a.phone)===norm(x.phone))||(x.company&&norm(a.company)===norm(x.company)));
+   if(old){Object.assign(old,x);updated++}else{customers.unshift({id:id(),...x});added++}
+  }));
+  save();render();alert("ایمپورت انجام شد.\nافزوده‌شده: "+added.toLocaleString("fa-IR")+"\nبه‌روزرسانی‌شده: "+updated.toLocaleString("fa-IR"));
+ }catch(err){alert("فایل خوانده نشد. لطفاً Excel یا CSV معتبر وارد کنید.");console.error(err)}
+ e.target.value="";
+}
+
+if(sessionStorage.getItem(LOGIN)==="1"){load();dashboard()}else loginPage();
+</script>
+</body>
+</html>
